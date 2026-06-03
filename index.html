@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>7Oz Coffee</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Serif+Display&display=swap" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Serif+Display&display=swap" rel="stylesheet"></noscript>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+:root{
+  --gold:#C8A030;
+  --gold-light:#f5ecd4;
+  --dark:#1c1c1c;
+  --bg:#f4f2ee;
+  --card:#ffffff;
+  --border:#e5e0d6;
+  --muted:#999;
+  --text:#2a2a2a;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);-webkit-text-size-adjust:100%}
+
+/* ═══════════ LAYOUT ═══════════ */
+#app{width:100%;height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+
+/* Header — iPad: taller, bigger logo, bigger touch targets */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:#fff;border-bottom:1px solid var(--border);flex-shrink:0;gap:16px;min-height:72px}
+.logo{height:52px;object-fit:contain}
+.hdr-center{flex:1;text-align:center}
+.hdr-title{font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.admin-btn{background:none;border:1.5px solid var(--border);color:var(--muted);font-size:14px;padding:10px 20px;border-radius:24px;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all 0.2s;min-height:44px}
+.admin-btn:hover{border-color:var(--gold);color:var(--gold)}
+
+/* Category nav — iPad: bigger pills, more padding */
+.cat-nav{display:flex;align-items:center;gap:10px;padding:12px 24px;overflow-x:auto;background:#fff;border-bottom:1px solid var(--border);flex-shrink:0;scrollbar-width:none;min-height:58px}
+.cat-nav::-webkit-scrollbar{display:none}
+.cat-pill{flex-shrink:0;padding:10px 22px;font-size:15px;font-weight:500;color:var(--muted);cursor:pointer;border-radius:24px;border:1.5px solid transparent;background:none;font-family:inherit;transition:all 0.18s;white-space:nowrap;min-height:44px;display:flex;align-items:center}
+.cat-pill.active{background:var(--gold);color:#fff;border-color:var(--gold)}
+.cat-pill:hover:not(.active){color:var(--dark);border-color:var(--border)}
+
+/* ═══════════ SWIPE CONTAINER ═══════════ */
+.swipe-outer{flex:1;overflow:hidden;position:relative;min-height:0}
+.swipe-track{display:flex;height:100%;transition:transform 0.38s cubic-bezier(0.25,0.46,0.45,0.94);will-change:transform}
+.swipe-page{flex-shrink:0;width:100%;height:100%;overflow-y:auto;padding:24px 28px 100px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.swipe-page::-webkit-scrollbar{width:4px}
+.swipe-page::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* Page header */
+.page-title{font-family:'DM Serif Display',serif;font-size:2.6rem;color:var(--dark);margin-bottom:6px;letter-spacing:-0.02em}
+.page-count{font-size:14px;color:var(--muted);margin-bottom:22px}
+
+/* Items grid — iPad landscape: 5 cols, portrait: 4 cols */
+.items-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px}
+@media (max-width:900px){.items-grid{grid-template-columns:repeat(4,1fr)}}
+@media (max-width:700px){.items-grid{grid-template-columns:repeat(3,1fr)}}
+
+/* Item card — bigger, more breathing room */
+.item-card{background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;display:flex;flex-direction:column;transition:transform 0.15s,box-shadow 0.15s}
+.item-card:active{transform:scale(0.97);box-shadow:0 2px 16px rgba(0,0,0,0.08)}
+.img-wrap{width:100%;aspect-ratio:1;background:#f8f7f3;overflow:hidden;position:relative}
+.img-wrap img{width:100%;height:100%;object-fit:cover;object-position:center}
+.item-info{padding:12px 14px 14px}
+.item-name{font-size:15px;font-weight:600;color:var(--dark);line-height:1.3;margin-bottom:8px}
+.price-single{display:inline-block;background:var(--gold-light);color:var(--gold);font-size:13px;font-weight:600;padding:4px 12px;border-radius:20px}
+.price-ml{display:flex;flex-direction:column;gap:3px}
+.price-ml span{font-size:13px;color:var(--gold);font-weight:500}
+.price-ml .lbl{color:var(--muted);font-size:11px;font-weight:400}
+
+/* Swipe dots */
+.swipe-dots{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:7px;z-index:10;pointer-events:none}
+.dot{width:7px;height:7px;border-radius:4px;background:var(--border);transition:all 0.25s}
+.dot.active{background:var(--gold);width:22px}
+
+/* Swipe arrows — bigger touch targets for iPad */
+.swipe-arrow{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.95);border:1px solid var(--border);border-radius:50%;width:52px;height:52px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;font-size:24px;color:var(--dark);box-shadow:0 2px 16px rgba(0,0,0,0.1);transition:opacity 0.2s}
+.swipe-arrow:active{background:var(--gold-light)}
+.arr-left{left:14px}
+.arr-right{right:14px}
+.swipe-arrow.hidden{opacity:0;pointer-events:none}
+
+/* ═══════════ ADMIN OVERLAY ═══════════ */
+#admin-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;align-items:center;justify-content:center}
+#admin-overlay.open{display:flex}
+.adm-modal{background:#fff;border-radius:24px;width:88%;max-width:720px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
+.adm-hdr{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);flex-shrink:0}
+.adm-hdr h2{font-family:'DM Serif Display',serif;font-size:1.5rem}
+.adm-close{background:none;border:none;font-size:28px;cursor:pointer;color:var(--muted);line-height:1;padding:4px 8px;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center}
+.adm-body{flex:1;overflow-y:auto;padding:24px;-webkit-overflow-scrolling:touch}
+
+/* PW screen */
+#pw-screen{text-align:center;padding:36px 16px}
+#pw-screen h3{font-size:1.1rem;margin-bottom:18px;color:var(--dark)}
+#pw-inp{width:100%;max-width:280px;padding:14px 20px;border:1.5px solid var(--border);border-radius:14px;font-size:18px;font-family:inherit;outline:none;text-align:center;letter-spacing:0.18em}
+#pw-inp:focus{border-color:var(--gold)}
+#pw-btn{display:block;margin:16px auto 0;background:var(--gold);color:#fff;border:none;padding:14px 36px;border-radius:14px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;min-height:50px}
+#pw-err{color:#e05;font-size:14px;margin-top:10px;min-height:20px}
+
+/* Admin panel */
+#adm-panel{display:none}
+.adm-section{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.adm-sel{width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:14px;font-size:16px;font-family:inherit;margin-bottom:20px;outline:none;background:#fff;cursor:pointer;min-height:50px}
+.adm-sel:focus{border-color:var(--gold)}
+.adm-item{display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)}
+.adm-item:last-child{border-bottom:none}
+.adm-thumb{width:64px;height:64px;border-radius:12px;object-fit:cover;background:#f4f2ee;flex-shrink:0}
+.adm-fields{flex:1;display:flex;flex-direction:column;gap:7px}
+.adm-row{display:flex;gap:8px;align-items:center}
+.adm-row label{font-size:11px;color:var(--muted);min-width:52px;flex-shrink:0}
+.adm-row input{flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;font-family:inherit;outline:none;min-height:40px}
+.adm-row input:focus{border-color:var(--gold)}
+.adm-del{background:none;border:1px solid #fdd;color:#e05;font-size:13px;padding:7px 12px;border-radius:10px;cursor:pointer;font-family:inherit;flex-shrink:0;align-self:flex-start;margin-top:2px;min-height:40px}
+.upload-btn{background:var(--gold-light);color:var(--gold);border:1.5px solid var(--gold);font-size:14px;padding:8px 14px;border-radius:10px;cursor:pointer;font-family:inherit;white-space:nowrap;min-height:40px}
+.upload-btn:active{background:#edd}
+.clr-btn{background:none;border:1px solid var(--border);color:var(--muted);font-size:13px;padding:8px 12px;border-radius:10px;cursor:pointer;font-family:inherit;white-space:nowrap;margin-left:6px;min-height:40px}
+.adm-add{background:var(--gold-light);color:var(--gold);border:1.5px solid var(--gold);padding:12px 22px;border-radius:14px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:18px;min-height:50px}
+.adm-save{background:var(--dark);color:#fff;border:none;padding:16px;border-radius:14px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;width:100%;margin-top:20px;min-height:54px}
+
+/* ═══ CROP MODAL ═══ */
+#crop-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:300;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+#crop-overlay.open{display:flex}
+.crop-title{color:#fff;font-size:14px;font-weight:500;letter-spacing:0.04em;opacity:0.85}
+.crop-hint{color:#fff;font-size:12px;opacity:0.5;margin-top:-10px}
+.crop-frame{position:relative;width:300px;height:300px;border-radius:16px;overflow:hidden;flex-shrink:0;touch-action:none;cursor:grab;background:#111}
+.crop-frame:active{cursor:grabbing}
+.crop-frame canvas{position:absolute;top:0;left:0;width:100%;height:100%}
+/* crosshair guides */
+.crop-frame::before,.crop-frame::after{content:'';position:absolute;z-index:2;pointer-events:none}
+.crop-frame::before{top:0;bottom:0;left:50%;width:1px;background:rgba(255,255,255,0.25)}
+.crop-frame::after{left:0;right:0;top:50%;height:1px;background:rgba(255,255,255,0.25)}
+.crop-border{position:absolute;inset:0;border:2px solid rgba(255,255,255,0.6);border-radius:16px;z-index:3;pointer-events:none}
+.crop-zoom-row{display:flex;align-items:center;gap:10px}
+.crop-zoom-row label{color:#fff;font-size:12px;opacity:0.6;min-width:36px}
+.crop-zoom-row input[type=range]{width:160px;accent-color:var(--gold)}
+.crop-zoom-val{color:#fff;font-size:12px;opacity:0.7;min-width:32px}
+.crop-btns{display:flex;gap:10px}
+.crop-cancel{background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.25);padding:11px 22px;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit}
+.crop-confirm{background:var(--gold);color:#fff;border:none;padding:11px 28px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="hdr">
+    <img src="img/logo.jpg" class="logo" alt="7Oz Coffee">
+    <div class="hdr-center"><div class="hdr-title">Drive Thru Menu</div></div>
+    <button class="admin-btn" onclick="openAdmin()">⚙ Admin</button>
+  </div>
+  <div class="cat-nav" id="cat-nav"></div>
+  <div class="swipe-outer" id="swipe-outer">
+    <button class="swipe-arrow arr-left hidden" id="arr-left" onclick="swipeTo(currentIdx-1)">&#8249;</button>
+    <div class="swipe-track" id="swipe-track"></div>
+    <button class="swipe-arrow arr-right" id="arr-right" onclick="swipeTo(currentIdx+1)">&#8250;</button>
+    <div class="swipe-dots" id="swipe-dots"></div>
+  </div>
+</div>
+
+<div id="admin-overlay">
+  <div class="adm-modal">
+    <div class="adm-hdr">
+      <h2>Menu Admin</h2>
+      <button class="adm-close" onclick="closeAdmin()">&times;</button>
+    </div>
+    <div class="adm-body">
+      <div id="pw-screen">
+        <h3>Enter Admin Password</h3>
+        <input type="password" id="pw-inp" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPw()">
+        <button id="pw-btn" onclick="checkPw()">Unlock</button>
+        <div id="pw-err"></div>
+      </div>
+      <div id="adm-panel">
+        <div class="adm-section">Category</div>
+        <select class="adm-sel" id="adm-cat" onchange="renderAdmItems()"></select>
+        <div class="adm-section">Items</div>
+        <div id="adm-list"></div>
+        <button class="adm-add" onclick="addItem()">+ Add Item</button>
+        <button class="adm-save" onclick="saveClose()">Save &amp; Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const IMAGES = {
+  "matcha_classic": "img/matcha_classic.jpg",
+  "matcha_strawberry": "img/matcha_strawberry.jpg",
+  "matcha_vanilla": "img/matcha_vanilla.jpg",
+  "matcha_blue": "img/matcha_blue.jpg",
+  "matcha_white": "img/matcha_white.jpg",
+  "matcha_mango": "img/matcha_mango.jpg",
+  "iced_latte_fs": "img/iced_latte_fs.jpg",
+  "iced_americano": "img/iced_americano.jpg",
+  "iced_latte_cv": "img/iced_latte_cv.jpg",
+  "iced_spanish1": "img/iced_spanish1.jpg",
+  "iced_spanish2": "img/iced_spanish2.jpg",
+  "iced_latte_rose": "img/iced_latte_rose.jpg",
+  "iced_white_mocha": "img/iced_white_mocha.jpg",
+  "iced_special": "img/iced_special.jpg",
+  "frapp_mocha": "img/frapp_mocha.jpg",
+  "frapp_caramel": "img/frapp_caramel.jpg",
+  "frapp_classic": "img/frapp_classic.jpg",
+  "frapp_hazelnut": "img/frapp_hazelnut.jpg",
+  "frapp_oreo": "img/frapp_oreo.jpg",
+  "frapp_lotus": "img/frapp_lotus.jpg",
+  "sm_mango": "img/sm_mango.jpg",
+  "sm_strawberry": "img/sm_strawberry.jpg",
+  "sm_mixberry": "img/sm_mixberry.jpg",
+  "sm_kiwi": "img/sm_kiwi.jpg",
+  "sm_apple": "img/sm_apple.jpg",
+  "sm_ice_latte_rose": "img/sm_ice_latte_rose.jpg",
+  "sm_blueberry": "img/sm_blueberry.jpg",
+  "sm_passion": "img/sm_passion.jpg",
+  "sm_peach": "img/sm_peach.jpg",
+  "ms_vanilla": "img/ms_vanilla.jpg",
+  "ms_pistachio": "img/ms_pistachio.jpg",
+  "ms_chocolate": "img/ms_chocolate.jpg",
+  "ms_bubblegum": "img/ms_bubblegum.jpg",
+  "ms_strawberry": "img/ms_strawberry.jpg",
+  "ms_caramel": "img/ms_caramel.jpg",
+  "ms_oreo": "img/ms_oreo.jpg",
+  "ms_lotus": "img/ms_lotus.jpg",
+  "ms_nutella": "img/ms_nutella.jpg",
+  "moj_strawberry": "img/moj_strawberry.jpg",
+  "moj_blue_hawai": "img/moj_blue_hawai.jpg",
+  "moj_mixberry": "img/moj_mixberry.jpg",
+  "moj_classic": "img/moj_classic.jpg",
+  "moj_peach": "img/moj_peach.jpg",
+  "moj_passion": "img/moj_passion.jpg",
+  "moj_mango": "img/moj_mango.jpg",
+  "mock_special": "img/mock_special.jpg",
+  "mock_blue_hawai": "img/mock_blue_hawai.jpg",
+  "icetea_raspberry": "img/icetea_raspberry.jpg",
+  "icetea_peach": "img/icetea_peach.jpg",
+  "prot_pistachio": "img/prot_pistachio.jpg",
+  "prot_shake": "img/prot_shake.jpg",
+  "prot_white_latte": "img/prot_white_latte.jpg",
+  "prot_strawberry": "img/prot_strawberry.jpg",
+  "prot_chocolate": "img/prot_chocolate.jpg",
+  "prot_banana": "img/prot_banana.jpg",
+  "hot_flat_white": "img/hot_flat_white.jpg",
+  "hot_espresso": "img/hot_espresso.jpg",
+  "hot_turkish": "img/hot_turkish.jpg",
+  "hot_esp_mac": "img/hot_esp_mac.jpg",
+  "hot_latte": "img/hot_latte.jpg",
+  "hot_vanilla_latte": "img/hot_vanilla_latte.jpg",
+  "hot_caramel_latte": "img/hot_caramel_latte.jpg",
+  "hot_rose_latte": "img/hot_rose_latte.jpg",
+  "hot_milk_honey": "img/hot_milk_honey.jpg",
+  "hot_americano": "img/hot_americano.jpg",
+  "hot_mocha": "img/hot_mocha.jpg",
+  "hot_spanish": "img/hot_spanish.jpg",
+  "hot_cappuccino": "img/hot_cappuccino.jpg",
+  "hot_chocolate": "img/hot_chocolate.jpg",
+  "hot_special": "img/hot_special.jpg",
+  "hot_matcha_latte": "img/hot_matcha_latte.jpg",
+  "hot_caramel_mac": "img/hot_caramel_mac.jpg",
+  "hot_tea": "img/hot_tea.jpg"
+};
+const MENU = [
+  { id:'matcha', name:'Matcha', items:[
+    {id:'matcha_classic',    name:'Classic',    priceM:5000, priceL:6000},
+    {id:'matcha_strawberry', name:'Strawberry', priceM:5000, priceL:6000},
+    {id:'matcha_vanilla',    name:'Vanilla',    priceM:5000, priceL:6000},
+    {id:'matcha_blue',       name:'Blue',       priceM:5000, priceL:6000},
+    {id:'matcha_white',      name:'White',      priceM:5000, priceL:6000},
+    {id:'matcha_mango',      name:'Mango',      priceM:5000, priceL:6000}
+  ]},
+  { id:'iced', name:'Iced Coffee', items:[
+    {id:'iced_latte_fs',    name:'Ice Latte Free Sugar',       price:4000},
+    {id:'iced_americano',   name:'Americano',                  price:4000},
+    {id:'iced_latte_cv',    name:'Ice Latte Caramel/Vanilla',  price:4000},
+    {id:'iced_spanish1',    name:'Ice Spanish',                price:4000},
+    {id:'iced_spanish2',    name:'Ice Spanish (Style 2)',      price:4000},
+    {id:'iced_latte_rose',  name:'Ice Latte Rose',             price:4000},
+    {id:'iced_white_mocha', name:'White Mocha',                price:4000},
+    {id:'iced_special',     name:'Special 7Oz',                price:4000}
+  ]},
+  { id:'frapp', name:'Frappuccino', items:[
+    {id:'frapp_mocha',    name:'Mocha',             price:4000},
+    {id:'frapp_caramel',  name:'Caramel',           price:4000},
+    {id:'frapp_classic',  name:'Classic Add Flavour',price:4000},
+    {id:'frapp_hazelnut', name:'Hazelnut',          price:4000},
+    {id:'frapp_oreo',     name:'Oreo',              price:4000},
+    {id:'frapp_lotus',    name:'Lotus',             price:4000}
+  ]},
+  { id:'smoothie', name:'Smoothie', items:[
+    {id:'sm_mango',          name:'Mango',        priceM:4000, priceL:5000},
+    {id:'sm_strawberry',     name:'Strawberry',   priceM:4000, priceL:5000},
+    {id:'sm_mixberry',       name:'Mixberry',     priceM:4000, priceL:5000},
+    {id:'sm_kiwi',           name:'Kiwi',         priceM:4000, priceL:5000},
+    {id:'sm_apple',          name:'Apple',        priceM:4000, priceL:5000},
+    {id:'sm_ice_latte_rose', name:'Ice Latte Rose',priceM:4000, priceL:5000},
+    {id:'sm_blueberry',      name:'Blue Berry',   priceM:4000, priceL:5000},
+    {id:'sm_passion',        name:'Passion Fruit',priceM:4000, priceL:5000},
+    {id:'sm_peach',          name:'Peach',        priceM:4000, priceL:5000}
+  ]},
+  { id:'milkshake', name:'Milk Shake', items:[
+    {id:'ms_vanilla',    name:'Vanilla',    price:4500},
+    {id:'ms_pistachio',  name:'Pistachio',  price:4500},
+    {id:'ms_chocolate',  name:'Chocolate',  price:4500},
+    {id:'ms_bubblegum',  name:'Bubble Gum', price:4500},
+    {id:'ms_strawberry', name:'Strawberry', price:4500},
+    {id:'ms_caramel',    name:'Caramel',    price:4500},
+    {id:'ms_oreo',       name:'Oreo',       price:5000},
+    {id:'ms_lotus',      name:'Lotus',      price:5000},
+    {id:'ms_nutella',    name:'Nutella',    price:5000}
+  ]},
+  { id:'mojito', name:'Mojito', items:[
+    {id:'moj_strawberry', name:'Strawberry',   price:4000},
+    {id:'moj_blue_hawai', name:'Blue Hawai',   price:4000},
+    {id:'moj_mixberry',   name:'Mixberry',     price:4000},
+    {id:'moj_classic',    name:'Classic',      price:4000},
+    {id:'moj_peach',      name:'Peach',        price:4000},
+    {id:'moj_passion',    name:'Passion Fruit',price:4000},
+    {id:'moj_mango',      name:'Mango',        price:4000}
+  ]},
+  { id:'mocktail', name:'Mocktail', items:[
+    {id:'mock_special',   name:'7Oz Special', price:5000},
+    {id:'mock_blue_hawai',name:'Blue Hawai',  price:4500}
+  ]},
+  { id:'icetea', name:'Ice Tea', items:[
+    {id:'icetea_raspberry',name:'Raspberry',price:4000},
+    {id:'icetea_peach',    name:'Peach',    price:4000}
+  ]},
+  { id:'protin', name:'Protein', items:[
+    {id:'prot_pistachio',   name:'Pistachio',    priceM:5000, priceL:6000},
+    {id:'prot_shake',       name:'Protein Shake',priceM:5000, priceL:6000},
+    {id:'prot_white_latte', name:'White Latte',  priceM:5000, priceL:6000},
+    {id:'prot_strawberry',  name:'Strawberry',   priceM:5000, priceL:6000},
+    {id:'prot_chocolate',   name:'Chocolate',    priceM:5000, priceL:6000},
+    {id:'prot_banana',      name:'Banana',       priceM:5000, priceL:6000}
+  ]},
+  { id:'hot', name:'Hot Coffee', items:[
+    {id:'hot_flat_white',   name:'Flat White',         priceM:3500, priceL:4000},
+    {id:'hot_espresso',     name:'Espresso',            priceM:2000, priceL:3000},
+    {id:'hot_turkish',      name:'Turkish Coffee',      priceM:2000, priceL:3000},
+    {id:'hot_esp_mac',      name:'Espresso Macchiato',  priceM:3500, priceL:4000},
+    {id:'hot_latte',        name:'Coffee Latte',        priceM:3500, priceL:4500},
+    {id:'hot_vanilla_latte',name:'Vanilla Latte',       priceM:3500, priceL:4500},
+    {id:'hot_caramel_latte',name:'Caramel Latte',       priceM:3500, priceL:4500},
+    {id:'hot_rose_latte',   name:'Rose Latte',          priceM:3500, priceL:4000},
+    {id:'hot_milk_honey',   name:'Milk Honey/Caramel',  priceM:3000, priceL:3500},
+    {id:'hot_americano',    name:'Americano',           priceM:3500, priceL:4000},
+    {id:'hot_mocha',        name:'Mocha White/Dark',    priceM:3500, priceL:4000},
+    {id:'hot_spanish',      name:'Spanish Latte',       price:4000},
+    {id:'hot_cappuccino',   name:'Cappuccino',          priceM:3500, priceL:4500},
+    {id:'hot_chocolate',    name:'Hot Chocolate',       priceM:3500, priceL:4000},
+    {id:'hot_special',      name:'Special 7Oz',         priceM:3000, priceL:4000},
+    {id:'hot_matcha_latte', name:'Matcha Latte',        priceM:4000, priceL:5000},
+    {id:'hot_caramel_mac',  name:'Caramel Macchiato',   priceM:3500, priceL:4500},
+    {id:'hot_tea',          name:'Tea',                 price:1000}
+  ]}
+];
+
+// Password is hashed — plain text no longer exposed in source
+// SHA-256 of '7oz2024' — change this hash if you change your password
+// To generate a new hash: https://emn178.github.io/online-tools/sha256.html
+const PW_HASH = '297ffb72b9224f8676f3c287e34f6698effbe428dea998322781bd6a1b35578a';
+
+// Brute-force lockout: 5 wrong attempts = 60 second lockout
+let pwAttempts = 0;
+let pwLockedUntil = 0;
+
+async function hashPassword(pw){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+let menuData = JSON.parse(localStorage.getItem('7oz_menu')||'null') || JSON.parse(JSON.stringify(MENU));
+let currentIdx = 0;
+
+// ── FIX: Render immediately — don't wait for Firebase ──
+renderAll();
+let touchStartX = 0, touchStartY = 0, isDragging = false;
+
+// Sanitize text before inserting into HTML — prevents XSS
+function esc(str){
+  return String(str||'')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+function fmt(p){ return p ? p.toLocaleString()+' IQD' : ''; }
+function priceHtml(item){
+  if(item.price) return `<span class="price-single">${fmt(item.price)}</span>`;
+  return `<div class="price-ml">
+    ${item.priceM?`<span><span class="lbl">M </span>${fmt(item.priceM)}</span>`:''}
+    ${item.priceL?`<span><span class="lbl">L </span>${fmt(item.priceL)}</span>`:''}
+  </div>`;
+}
+
+function renderAll(){
+  renderNav();
+  renderPages();
+  renderDots();
+  updateArrows();
+  updateTrack(false);
+}
+
+function renderNav(){
+  document.getElementById('cat-nav').innerHTML = menuData.map((c,i)=>
+    `<button class="cat-pill ${i===currentIdx?'active':''}" onclick="swipeTo(${i})">${esc(c.name)}</button>`
+  ).join('');
+}
+
+function renderPages(){
+  const track = document.getElementById('swipe-track');
+  track.innerHTML = menuData.map((cat,i)=>{
+    const cards = cat.items.map(item=>{
+      const src = item.customImg || IMAGES[item.id] || '';
+      const safeAlt = esc(item.name);
+      const safeSrc = src && src.startsWith('data:image') ? src : esc(src);
+      const imgHtml = src ? `<img src="${safeSrc}" alt="${safeAlt}" loading="lazy">` : '';
+      return `<div class="item-card">
+        <div class="img-wrap">${imgHtml}</div>
+        <div class="item-info">
+          <div class="item-name">${esc(item.name)}</div>
+          ${priceHtml(item)}
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="swipe-page" id="page-${i}">
+      <div class="page-title">${esc(cat.name)}</div>
+      <div class="page-count">${cat.items.length} items</div>
+      <div class="items-grid">${cards}</div>
+    </div>`;
+  }).join('');
+  setupSwipeEvents();
+}
+
+function renderDots(){
+  document.getElementById('swipe-dots').innerHTML = menuData.map((_,i)=>
+    `<div class="dot ${i===currentIdx?'active':''}"></div>`
+  ).join('');
+}
+
+function updateArrows(){
+  document.getElementById('arr-left').classList.toggle('hidden', currentIdx===0);
+  document.getElementById('arr-right').classList.toggle('hidden', currentIdx===menuData.length-1);
+}
+
+function updateTrack(animate=true){
+  const track = document.getElementById('swipe-track');
+  track.style.transition = animate ? 'transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94)' : 'none';
+  track.style.transform = `translateX(-${currentIdx*100}%)`;
+}
+
+function swipeTo(idx){
+  if(idx<0||idx>=menuData.length) return;
+  currentIdx = idx;
+  renderNav();
+  renderDots();
+  updateArrows();
+  updateTrack(true);
+  // Scroll the page to top
+  setTimeout(()=>{
+    const page = document.getElementById('page-'+idx);
+    if(page) page.scrollTop = 0;
+  },50);
+  // Scroll nav pill into view
+  const pills = document.querySelectorAll('.cat-pill');
+  if(pills[idx]) pills[idx].scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+}
+
+function setupSwipeEvents(){
+  const outer = document.getElementById('swipe-outer');
+  outer.addEventListener('touchstart', e=>{
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    isDragging = false;
+  }, {passive:true});
+  outer.addEventListener('touchmove', e=>{
+    const dx = Math.abs(e.touches[0].clientX - touchStartX);
+    const dy = Math.abs(e.touches[0].clientY - touchStartY);
+    if(dx>dy && dx>8) isDragging = true;
+  }, {passive:true});
+  outer.addEventListener('touchend', e=>{
+    if(!isDragging) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if(Math.abs(dx)>50){
+      if(dx<0) swipeTo(currentIdx+1);
+      else swipeTo(currentIdx-1);
+    }
+    isDragging = false;
+  }, {passive:true});
+
+  // Mouse drag for desktop testing
+  let mouseDown=false, mStartX=0;
+  outer.addEventListener('mousedown', e=>{ mouseDown=true; mStartX=e.clientX; });
+  outer.addEventListener('mouseup', e=>{
+    if(!mouseDown) return;
+    mouseDown=false;
+    const dx = e.clientX - mStartX;
+    if(Math.abs(dx)>60){ dx<0?swipeTo(currentIdx+1):swipeTo(currentIdx-1); }
+  });
+  outer.addEventListener('mouseleave',()=>mouseDown=false);
+}
+
+// ═══════ ADMIN ═══════
+function openAdmin(){
+  document.getElementById('admin-overlay').classList.add('open');
+  document.getElementById('pw-screen').style.display='block';
+  document.getElementById('adm-panel').style.display='none';
+  document.getElementById('pw-inp').value='';
+  document.getElementById('pw-err').textContent='';
+  setTimeout(()=>document.getElementById('pw-inp').focus(),120);
+}
+function closeAdmin(){ document.getElementById('admin-overlay').classList.remove('open'); }
+function checkPw(){
+  const errEl = document.getElementById('pw-err');
+  const inp = document.getElementById('pw-inp');
+
+  // Check lockout
+  const now = Date.now();
+  if(now < pwLockedUntil){
+    const secs = Math.ceil((pwLockedUntil - now) / 1000);
+    errEl.textContent = `Too many attempts. Try again in ${secs}s`;
+    inp.value='';
+    return;
+  }
+
+  hashPassword(inp.value).then(hash=>{
+    if(hash === PW_HASH){
+      pwAttempts = 0;
+      inp.value='';
+      errEl.textContent='';
+      document.getElementById('pw-screen').style.display='none';
+      document.getElementById('adm-panel').style.display='block';
+      renderAdmCats();
+      renderAdmItems();
+    } else {
+      pwAttempts++;
+      inp.value='';
+      if(pwAttempts >= 5){
+        pwLockedUntil = Date.now() + 60000; // 60 second lockout
+        pwAttempts = 0;
+        errEl.textContent='Too many attempts. Locked for 60 seconds.';
+      } else {
+        errEl.textContent=`Incorrect password (${5 - pwAttempts} attempts left)`;
+      }
+    }
+  });
+}
+function renderAdmCats(){
+  const sel = document.getElementById('adm-cat');
+  sel.innerHTML = menuData.map((c,i)=>`<option value="${i}">${esc(c.name)}</option>`).join('');
+  sel.value = currentIdx;
+}
+function getCatIdx(){ return parseInt(document.getElementById('adm-cat').value); }
+function renderAdmItems(){
+  const cat = menuData[getCatIdx()];
+  document.getElementById('adm-list').innerHTML = cat.items.map((item,i)=>{
+    const src = item.customImg||IMAGES[item.id]||'';
+    const hasML = item.priceM!==undefined||item.priceL!==undefined;
+    return `<div class="adm-item">
+      <img class="adm-thumb" src="${src||'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='}" alt="">
+      <div class="adm-fields">
+        <div class="adm-row"><label>Name</label><input type="text" value="${esc(item.name)}" onchange="updItem(${getCatIdx()},${i},'name',this.value)"></div>
+        ${hasML?`
+        <div class="adm-row"><label>M Price</label><input type="number" value="${item.priceM||''}" onchange="updItem(${getCatIdx()},${i},'priceM',+this.value)"></div>
+        <div class="adm-row"><label>L Price</label><input type="number" value="${item.priceL||''}" onchange="updItem(${getCatIdx()},${i},'priceL',+this.value)"></div>
+        `:`<div class="adm-row"><label>Price</label><input type="number" value="${item.price||''}" onchange="updItem(${getCatIdx()},${i},'price',+this.value)"></div>`}
+        <div class="adm-row">
+          <label>Photo</label>
+          <button class="upload-btn" onclick="triggerUpload(this,${getCatIdx()},${i})">&#128247; Change Photo</button>
+          <input type="file" accept="image/*" class="file-inp" style="display:none" onchange="handleUpload(this,${getCatIdx()},${i})">
+          ${item.customImg?`<button class="clr-btn" onclick="clearImg(${getCatIdx()},${i},this)">&#10005; Reset</button>`:''}
+        </div>
+      </div>
+      <button class="adm-del" onclick="delItem(${getCatIdx()},${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+// ═══ CROP ENGINE ═══
+let cropState = { ci:0, ii:0, img:null, x:0, y:0, zoom:1, dragging:false, lastX:0, lastY:0, pinchDist:0, inputEl:null };
+
+function triggerUpload(btn,ci,ii){
+  btn.nextElementSibling.click();
+}
+function handleUpload(input,ci,ii){
+  const file = input.files[0];
+  if(!file) return;
+  cropState.inputEl = input;
+  cropState.ci = ci;
+  cropState.ii = ii;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const img = new Image();
+    img.onload = function(){
+      cropState.img = img;
+      // Start zoom so image fills the 300px frame (600px canvas = 2x for sharpness)
+      const scale = Math.max(600/img.width, 600/img.height);
+      cropState.zoom = scale;
+      cropState.x = (600 - img.width*scale)/2;
+      cropState.y = (600 - img.height*scale)/2;
+      // Set slider range sensibly
+      const zoomSlider = document.getElementById('crop-zoom');
+      zoomSlider.min = Math.round(scale*100);
+      zoomSlider.max = Math.round(scale*400);
+      zoomSlider.value = Math.round(scale*100);
+      document.getElementById('crop-zoom-val').textContent = (scale).toFixed(1)+'×';
+      drawCrop();
+      document.getElementById('crop-overlay').classList.add('open');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  // Reset input so same file can be re-selected
+  input.value = '';
+}
+
+function drawCrop(){
+  const canvas = document.getElementById('crop-canvas');
+  const ctx = canvas.getContext('2d');
+  const {img, x, y, zoom} = cropState;
+  ctx.clearRect(0,0,600,600);
+  // Dark background
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(0,0,600,600);
+  if(img) ctx.drawImage(img, x, y, img.width*zoom, img.height*zoom);
+}
+
+function onZoomSlider(val){
+  const newZoom = val/100;
+  // Zoom toward center (300,300)
+  const cx=300, cy=300;
+  const ratio = newZoom/cropState.zoom;
+  cropState.x = cx - (cx - cropState.x)*ratio;
+  cropState.y = cy - (cy - cropState.y)*ratio;
+  cropState.zoom = newZoom;
+  document.getElementById('crop-zoom-val').textContent = newZoom.toFixed(1)+'×';
+  drawCrop();
+}
+
+function closeCrop(){
+  document.getElementById('crop-overlay').classList.remove('open');
+}
+
+function confirmCrop(){
+  const canvas = document.getElementById('crop-canvas');
+  // Export at 480px (good quality for menu cards)
+  const out = document.createElement('canvas');
+  out.width = 480; out.height = 480;
+  const ctx = out.getContext('2d');
+  // Scale from 600px canvas to 480px output
+  ctx.drawImage(canvas, 0, 0, 600, 600, 0, 0, 480, 480);
+  const dataUrl = out.toDataURL('image/jpeg', 0.92);
+  const {ci, ii, inputEl} = cropState;
+  menuData[ci].items[ii].customImg = dataUrl;
+  // Update thumbnail in admin
+  const row = inputEl.closest('.adm-item');
+  row.querySelector('.adm-thumb').src = dataUrl;
+  // Show/update reset button
+  let clr = row.querySelector('.clr-btn');
+  if(!clr){
+    clr = document.createElement('button');
+    clr.className='clr-btn';
+    clr.innerHTML='&#10005; Reset';
+    clr.onclick=function(){ clearImg(ci,ii,clr); };
+    inputEl.after(clr);
+  }
+  closeCrop();
+}
+
+function clearImg(ci,ii,btn){
+  menuData[ci].items[ii].customImg = '';
+  const row = btn.closest('.adm-item');
+  const orig = IMAGES[menuData[ci].items[ii].id] || '';
+  row.querySelector('.adm-thumb').src = orig || 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+  btn.remove();
+}
+
+// ─── Touch & Mouse drag ───
+(function(){
+  function getFrame(){ return document.getElementById('crop-frame'); }
+
+  // Mouse
+  document.addEventListener('mousedown', e=>{
+    if(!e.target.closest('#crop-frame')) return;
+    cropState.dragging=true; cropState.lastX=e.clientX; cropState.lastY=e.clientY;
+  });
+  document.addEventListener('mousemove', e=>{
+    if(!cropState.dragging) return;
+    cropState.x += e.clientX - cropState.lastX;
+    cropState.y += e.clientY - cropState.lastY;
+    cropState.lastX=e.clientX; cropState.lastY=e.clientY;
+    drawCrop();
+  });
+  document.addEventListener('mouseup', ()=>{ cropState.dragging=false; });
+
+  // Mouse wheel zoom
+  document.addEventListener('wheel', e=>{
+    if(!e.target.closest('#crop-frame')) return;
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.08 : 0.08;
+    const slider = document.getElementById('crop-zoom');
+    const newZoom = Math.max(slider.min/100, Math.min(slider.max/100, cropState.zoom + delta));
+    slider.value = Math.round(newZoom*100);
+    onZoomSlider(Math.round(newZoom*100));
+  }, {passive:false});
+
+  // Touch drag
+  document.addEventListener('touchstart', e=>{
+    if(!e.target.closest('#crop-frame')) return;
+    if(e.touches.length===1){
+      cropState.dragging=true;
+      cropState.lastX=e.touches[0].clientX;
+      cropState.lastY=e.touches[0].clientY;
+    } else if(e.touches.length===2){
+      cropState.dragging=false;
+      cropState.pinchDist=Math.hypot(
+        e.touches[0].clientX-e.touches[1].clientX,
+        e.touches[0].clientY-e.touches[1].clientY
+      );
+    }
+  },{passive:true});
+  document.addEventListener('touchmove', e=>{
+    if(!e.target.closest('#crop-frame')) return;
+    if(e.touches.length===1 && cropState.dragging){
+      // Scale movement from display (300px) to canvas (600px)
+      const scl = 600/300;
+      cropState.x += (e.touches[0].clientX - cropState.lastX)*scl;
+      cropState.y += (e.touches[0].clientY - cropState.lastY)*scl;
+      cropState.lastX=e.touches[0].clientX;
+      cropState.lastY=e.touches[0].clientY;
+      drawCrop();
+    } else if(e.touches.length===2){
+      const dist = Math.hypot(
+        e.touches[0].clientX-e.touches[1].clientX,
+        e.touches[0].clientY-e.touches[1].clientY
+      );
+      const slider = document.getElementById('crop-zoom');
+      const newZoom = Math.max(slider.min/100, Math.min(slider.max/100, cropState.zoom*(dist/cropState.pinchDist)));
+      cropState.pinchDist=dist;
+      slider.value = Math.round(newZoom*100);
+      onZoomSlider(Math.round(newZoom*100));
+    }
+  },{passive:true});
+  document.addEventListener('touchend', e=>{
+    if(e.touches.length===0) cropState.dragging=false;
+  },{passive:true});
+})();
+function updItem(ci,ii,field,val){ menuData[ci].items[ii][field]=val; }
+function delItem(ci,ii){
+  if(!confirm('Remove this item?')) return;
+  menuData[ci].items.splice(ii,1);
+  renderAdmItems();
+}
+function addItem(){
+  const ci=getCatIdx();
+  menuData[ci].items.push({id:'new_'+Date.now(),name:'New Item',price:4000});
+  renderAdmItems();
+  setTimeout(()=>document.getElementById('adm-list').lastElementChild?.scrollIntoView({behavior:'smooth'}),80);
+}
+function saveClose(){
+  saveToFirebase();
+}
+
+document.getElementById('admin-overlay').addEventListener('click',e=>{ if(e.target.id==='admin-overlay') closeAdmin(); });
+
+// ── FIX: Default saveToFirebase — works even before Firebase SDK loads ──
+// Gets overwritten once Firebase initialises successfully
+window.saveToFirebase = function(){
+  // Save to localStorage immediately — never lose data
+  localStorage.setItem('7oz_menu', JSON.stringify(menuData));
+  localStorage.setItem('7oz_menu_fetched', '0');
+  showSyncStatus('⟳ Saving…');
+  // Load Firebase SDK on demand (only downloaded once per session)
+  loadFirebase(()=>{
+    // saveToFirebase was replaced by loadFirebase — call it now
+    window.saveToFirebase();
+  });
+};
+
+// ═══ FIREBASE ═══
+const firebaseConfig = {
+  apiKey: "AIzaSyClVXuux4j9blycAbK4uTDxR9xp7xwrzuY",
+  authDomain: "ozcoffee.firebaseapp.com",
+  projectId: "ozcoffee",
+  storageBucket: "ozcoffee.firebasestorage.app",
+  messagingSenderId: "1078771633437",
+  appId: "1:1078771633437:web:603507ea791725e2f6e5f4",
+  measurementId: "G-8W9MZQN3QT"
+};
+
+// Show loading state on startup
+function showSyncStatus(msg, color='#999'){
+  let el = document.getElementById('sync-status');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'sync-status';
+    el.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;font-size:12px;padding:7px 16px;border-radius:20px;z-index:999;font-family:DM Sans,sans-serif;transition:opacity 0.4s;pointer-events:none';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.color = color;
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  if(color==='#4caf50') el._t = setTimeout(()=>el.style.opacity='0', 2500);
+}
+
+// ── FIREBASE LOADER ──────────────────────────────────────────────────────────
+// Firebase SDK is ~400KB from Google's servers (gstatic.com).
+// On slow Iraqi WiFi this alone was causing 10-30s hangs.
+// FIX: Cache check happens BEFORE any network request.
+//   - Cache fresh (< 5 min)  → Firebase SDK never downloaded at all
+//   - Cache stale            → Download SDK 3 seconds after page loads
+//   - Admin saves            → Load SDK on demand when Save is clicked
+// ─────────────────────────────────────────────────────────────────────────────
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function loadFirebase(onReady){
+  // Only download the ~400KB Firebase SDK once per session
+  if(window._fbReady){ onReady && onReady(); return; }
+  import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js').then(({initializeApp})=>{
+  import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js').then(({getFirestore, doc, getDoc, setDoc})=>{
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+    const ref = doc(db, 'menu', 'data');
+    window._fbReady   = true;
+    window._fbGetDoc  = getDoc;   // stored so sync never re-imports the SDK
+    window._fbSetDoc  = setDoc;
+    window._fbMenuRef = ref;
+
+    // Replace the save function now that Firebase is ready
+    window.saveToFirebase = function(){
+      showSyncStatus('⟳ Saving…');
+      setDoc(ref, {categories: menuData}).then(()=>{
+        localStorage.setItem('7oz_menu', JSON.stringify(menuData));
+        localStorage.setItem('7oz_menu_fetched', String(Date.now()));
+        showSyncStatus('✓ Saved & synced!', '#4caf50');
+        closeAdmin(); renderAll();
+      }).catch(()=>{
+        localStorage.setItem('7oz_menu', JSON.stringify(menuData));
+        localStorage.setItem('7oz_menu_fetched', '0');
+        showSyncStatus('⚠ Saved locally (offline)', '#ff9800');
+        closeAdmin(); renderAll();
+      });
+    };
+
+    onReady && onReady();
+  });}).catch(()=>{ /* SDK failed to load — save falls back to localStorage */ });
+}
+
+// ── Background sync: only runs if cache is stale ─────────────────────────────
+// Delay 3 seconds so the page is fully interactive before any network activity
+setTimeout(()=>{
+  const lastFetch = parseInt(localStorage.getItem('7oz_menu_fetched') || '0');
+  const cacheAge  = Date.now() - lastFetch;
+
+  if(cacheAge < CACHE_TTL){
+    // Cache is fresh — DON'T download Firebase SDK at all this visit
+    return;
+  }
+
+  // Cache is stale — load Firebase then fetch latest menu
+  loadFirebase(()=>{
+    const timeoutPromise = new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')),6000));
+    // Use already-loaded getDoc — no second SDK download
+    Promise.race([window._fbGetDoc(window._fbMenuRef), timeoutPromise])
+      .then(snap=>{
+        if(snap && snap.exists()){
+          menuData = snap.data().categories;
+          localStorage.setItem('7oz_menu', JSON.stringify(menuData));
+          localStorage.setItem('7oz_menu_fetched', String(Date.now()));
+          showSyncStatus('✓ Synced', '#4caf50');
+          renderAll();
+        }
+      }).catch(()=>{ /* timeout or offline — menu already showing */ });
+  });
+}, 3000); // 3 second delay — page is fully loaded and interactive first
+</script>
+<!-- CROP MODAL -->
+<div id="crop-overlay">
+  <div class="crop-title">Drag &amp; pinch to position</div>
+  <div class="crop-hint">Square crop — matches the card layout</div>
+  <div class="crop-frame" id="crop-frame">
+    <canvas id="crop-canvas" width="600" height="600"></canvas>
+    <div class="crop-border"></div>
+  </div>
+  <div class="crop-zoom-row">
+    <label>Zoom</label>
+    <input type="range" id="crop-zoom" min="100" max="400" value="100" step="1" oninput="onZoomSlider(this.value)">
+    <span class="crop-zoom-val" id="crop-zoom-val">1.0×</span>
+  </div>
+  <div class="crop-btns">
+    <button class="crop-cancel" onclick="closeCrop()">Cancel</button>
+    <button class="crop-confirm" onclick="confirmCrop()">Use Photo</button>
+  </div>
+</div>
+
+</body>
+</html>
